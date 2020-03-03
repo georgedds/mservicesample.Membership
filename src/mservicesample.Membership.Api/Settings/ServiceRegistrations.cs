@@ -3,9 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System;
 using System.Collections.Generic;
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.OpenApi.Models;
 using mservicesample.Membership.Core.DataAccess.Entities;
 using mservicesample.Membership.Core.DataAccess.Repositories;
+using mservicesample.Membership.Core.Dtos.Mapping;
 using mservicesample.Membership.Core.Helpers;
 using mservicesample.Membership.Core.Services;
 using mservicesample.Membership.Core.Settings;
@@ -80,10 +83,10 @@ namespace mservicesample.Membership.Api.Settings
             services.AddScoped<UserManager<AppUser>>();
             services.AddScoped<RoleManager<AppRole>>();
 
-            
-            //services.AddScoped<AppRole>
-
-            
+            services.AddScoped<UserManager<AppUser>, UserManager<AppUser>>();
+            services.AddScoped<RoleManager<AppRole>, RoleManager<AppRole>>();
+            services.TryAddScoped<IRoleValidator<AppRole>, RoleValidator<AppRole>>();
+            services.TryAddScoped<IUserClaimsPrincipalFactory<AppUser>, UserClaimsPrincipalFactory<AppUser, AppRole>>();
 
             services.AddScoped<IUserClaimsPrincipalFactory<IdentityUser>, UserClaimsPrincipalFactory<IdentityUser, IdentityRole>>();
 
@@ -91,6 +94,30 @@ namespace mservicesample.Membership.Api.Settings
             services.AddSingleton<JwtIssuerOptions>();
             services.AddSingleton<ITokenGenerator, TokenGenerator>();
             services.AddSingleton<ILogger, Logger>();
+
+            var mappingConfig = new MapperConfiguration(mc =>
+            {
+                mc.AddProfile(new DataMapping());
+            });
+
+            IMapper mapper = mappingConfig.CreateMapper();
+            services.AddSingleton(mapper);
+
+            //services.AddHttpContextAccessor();
+            //// Identity services
+            //services.TryAddScoped<IUserValidator<AppUser>, UserValidator<AppUser>>();
+            //services.TryAddScoped<IPasswordValidator<AppUser>, PasswordValidator<AppUser>>();
+            //services.TryAddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
+            //services.TryAddScoped<ILookupNormalizer, UpperInvariantLookupNormalizer>();
+            //services.TryAddScoped<IRoleValidator<AppRole>, RoleValidator<AppRole>>();
+            //// No interface for the error describer so we can add errors without rev'ing the interface
+            //services.TryAddScoped<IdentityErrorDescriber>();
+            //services.TryAddScoped<ISecurityStampValidator, SecurityStampValidator<AppUser>>();
+            //services.TryAddScoped<ITwoFactorSecurityStampValidator, TwoFactorSecurityStampValidator<AppUser>>();
+            //services.TryAddScoped<IUserClaimsPrincipalFactory<AppUser>, UserClaimsPrincipalFactory<AppUser, AppRole>>();
+            //services.TryAddScoped<UserManager<AppUser>>();
+            //services.TryAddScoped<SignInManager<AppUser>>();
+            //services.TryAddScoped<RoleManager<AppRole>>();
 
             return services;
         }

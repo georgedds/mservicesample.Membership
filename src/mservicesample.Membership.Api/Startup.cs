@@ -11,13 +11,17 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using mservicesample.Membership.Api.Settings;
 using mservicesample.Membership.Core.DataAccess;
 using mservicesample.Membership.Core.DataAccess.Entities;
 using mservicesample.Membership.Core.DataAccess.Identity;
+using mservicesample.Membership.Core.DataAccess.Repositories;
+using mservicesample.Membership.Core.Helpers;
 using mservicesample.Membership.Core.Middleware;
+using mservicesample.Membership.Core.Services;
 using mservicesample.Membership.Core.Settings;
 
 namespace mservicesample.Membership.Api
@@ -112,40 +116,32 @@ namespace mservicesample.Membership.Api
                 options.AddPolicy("ApiUser", policy => policy.RequireClaim(Core.Helpers.Constants.Strings.JwtClaimIdentifiers.Rol, Core.Helpers.Constants.Strings.JwtClaims.ApiAccess));
             });
 
-            // add identity
-            var identityBuilder = services.AddIdentity<AppUser, AppRole>(o =>
-                {
-                    // configure identity options
-                    o.Password.RequireDigit = false;
-                    o.Password.RequireLowercase = false;
-                    o.Password.RequireUppercase = false;
-                    o.Password.RequireNonAlphanumeric = false;
-                    o.Password.RequiredLength = 6;
-                })
+
+            services.AddIdentity<IdentityUser, IdentityRole>()
+                .AddEntityFrameworkStores<AppIdentityDbContext>()
+                .AddDefaultTokenProviders();
+
+
+            services.AddIdentityCore<AppUser>()
+                .AddRoles<AppRole>()
                 .AddRoleManager<RoleManager<AppRole>>()
                 .AddUserManager<UserManager<AppUser>>()
                 .AddClaimsPrincipalFactory<UserClaimsPrincipalFactory<AppUser, IdentityRole>>()
-                .AddEntityFrameworkStores<AppIdentityDbContext>();
-            //.AddDefaultTokenProviders()
-            //.AddDefaultUI(); 
-
-            identityBuilder = new IdentityBuilder(identityBuilder.UserType, typeof(IdentityRole), identityBuilder.Services);
-            identityBuilder.AddEntityFrameworkStores<AppIdentityDbContext>().AddDefaultTokenProviders();
-            
-            //services.AddIdentity<IdentityUser, IdentityRole>();
+                .AddEntityFrameworkStores<AppIdentityDbContext>()
+                .AddDefaultTokenProviders();
+          
             //add healthcheck
             services.RegisterHealthCheck(Configuration.GetConnectionString("Default"), jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)]);
             
+            services.AddMvc();
             services.AddAutoMapper(typeof(Startup));
 
 
             //Add swagger
             services.RegisterSwagger();
-
             //register our services
             services.RegisterServices();
-
-            services.AddControllers();
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -179,6 +175,7 @@ namespace mservicesample.Membership.Api
 
 
             app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseMiddleware(typeof(ExceptionHandlingMiddleware));
 
