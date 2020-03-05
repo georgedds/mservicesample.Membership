@@ -11,18 +11,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using mservicesample.Membership.Api.Settings;
 using mservicesample.Membership.Core.DataAccess;
 using mservicesample.Membership.Core.DataAccess.Entities;
 using mservicesample.Membership.Core.DataAccess.Identity;
-using mservicesample.Membership.Core.DataAccess.Repositories;
-using mservicesample.Membership.Core.Helpers;
 using mservicesample.Membership.Core.Middleware;
-using mservicesample.Membership.Core.Services;
 using mservicesample.Membership.Core.Settings;
+using mservicesample.Common.Infrastructure.Consul;
 
 namespace mservicesample.Membership.Api
 {
@@ -48,9 +45,9 @@ namespace mservicesample.Membership.Api
              // Add framework services.
             services.AddDbContext<AppIdentityDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Default"), b => b.MigrationsAssembly("mservicesample.Membership")));
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Default"), b => b.MigrationsAssembly("mservicesample.Membership")));
-
-
+            
             services.AddCors();
+            services.AddConsul();
 
             // jwt wire up
             // Get options from app settings
@@ -141,7 +138,7 @@ namespace mservicesample.Membership.Api
             services.RegisterSwagger();
             //register our services
             services.RegisterServices();
-            
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -152,7 +149,7 @@ namespace mservicesample.Membership.Api
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -191,6 +188,10 @@ namespace mservicesample.Membership.Api
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
             });
             app.UseHealthChecksUI(); //http://localhost:5000/healthchecks-ui#/healthchecks
+
+            var consulServiceId = app.UseConsul();
         }
     }
+
+
 }
